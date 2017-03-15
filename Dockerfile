@@ -5,9 +5,9 @@ RUN [ "cross-build-start" ]
 
     #apt-get upgrade && \
 RUN apt-get update && \
-    apt-get install wget git build-essential
+    apt-get install git build-essential
 
-RUN sudo dpkg --add-architecture i386
+#RUN sudo dpkg --add-architecture i386
 
 # Install all of the development libraries needed to compile Wine
 # The only one from ./configure that we were unable to find in Arm Debian was libhal-dev
@@ -54,33 +54,63 @@ RUN apt-get install \
         libjpeg-dev \
         libgstreamer-plugins-base1.0-dev
 
-#RUN wget https://dl.winehq.org/wine-builds/Release.key && \
-    #apt-key add Release.key
+
+# dpkg packaging deps
+RUN apt-get install \
+        devscripts \
+        fakeroot \
+        autotools-dev \
+        autoconf \
+        debhelper \
+        docbook-to-man \
+        docbook-utils \
+        docbook-xsl \
+        fontforge \
+        gawk \
+        libacl1-dev \
+        libasound2-dev \
+        libesd0 \
+        libesd0-dev \
+        libgtk-3-dev \
+        libice-dev \
+        libssl-dev \
+        libxt-dev \
+        prelink \
+        sharutils \
+        unixodbc-dev
 
 # Download latest release version of Wine
+# And package it
+    #echo "Starting debian packaging build `debuild`" && \ # I guess this doesn't show up in `docker build`
+    #git clone --depth 1 https://github.com/wine-compholio/wine-packaging.git wine-packaging && \
 RUN mkdir -p wine-source && \
-    git clone --branch wine-2.3 git://source.winehq.org/git/wine.git wine-source && \
-    cd wine-source && \
-    ./configure && \
-    make
+    git clone --depth 1 --branch wine-2.3 git://source.winehq.org/git/wine.git wine-source && \
+    git clone --depth 1 https://github.com/hinchliff/wine-packaging.git wine-packaging && \
+    cd /wine-packaging && \
+    ./generate.py --ver 2.3 --skip-name --out /wine-source debian-jessie-stable && \
+    sed -e '/wine-stable-arm.substvars/ s/"\-m32"//' -i /wine-source/debian/rules
+
+RUN cd /wine-source && \
+    debuild
+    #make clean
+
+    #./configure && \
+    #make
 
 ## Packaging
-RUN apt-get install devscripts
+#RUN apt-get install devscripts
 
 # Download or clone the packaging git repo
-RUN git clone --depth 1 https://github.com/wine-compholio/wine-packaging.git wine-packaging
+#RUN git clone --depth 1 https://github.com/wine-compholio/wine-packaging.git wine-packaging
 
-RUN cd wine-packaging && \
-    ./generate.py --ver 2.3 --skip-name --out /wine-source debian-jessie-stable
+#RUN cd wine-packaging && \
+    #./generate.py --ver 2.3 --skip-name --out /wine-source debian-jessie-stable
 
-# dpkg-checkbuilddeps: Unmet build dependencies: autotools-dev autoconf debhelper (>= 7) docbook-to-man docbook-utils docbook-xsl fontforge gawk libacl1-dev libasound2-dev libesd0 | libesd-alsa0 libesd0-dev libgtk-3-dev libice-dev libssl-dev libxt-dev prelink sharutils unixodbc-dev
-RUN apt-get install autotools-dev autoconf debhelper docbook-to-man docbook-utils docbook-xsl fontforge gawk libacl1-dev libasound2-dev libesd0 libesd0-dev libgtk-3-dev libice-dev libssl-dev libxt-dev prelink sharutils unixodbc-dev
+#RUN apt-get install fakeroot
 
-RUN apt-get install fakeroot
-
-RUN cd wine-source && \
-    debuild
+#RUN cd wine-source && \
+    #debuild
 
 #CMD [ "/usr/bin/qemu-arm-static", "/bin/sh.real" ]
 
-#RUN [ "cross-build-end" ]
+RUN [ "cross-build-end" ]
