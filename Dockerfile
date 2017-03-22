@@ -7,8 +7,6 @@ RUN [ "cross-build-start" ]
 RUN apt-get update && \
     apt-get install git build-essential
 
-#RUN sudo dpkg --add-architecture i386
-
 # Install all of the development libraries needed to compile Wine
 # The only one from ./configure that we were unable to find in Arm Debian was libhal-dev
 RUN apt-get install \
@@ -80,37 +78,24 @@ RUN apt-get install \
         unixodbc-dev
 
 # Download latest release version of Wine
-# And package it
-    #echo "Starting debian packaging build `debuild`" && \ # I guess this doesn't show up in `docker build`
-    #git clone --depth 1 https://github.com/wine-compholio/wine-packaging.git wine-packaging && \
+# And prepare to package it
 RUN mkdir -p wine-source && \
     git clone --depth 1 --branch wine-2.3 git://source.winehq.org/git/wine.git wine-source && \
-    git clone --depth 1 https://github.com/hinchliff/wine-packaging.git wine-packaging && \
+    git clone --depth 1 https://github.com/wine-compholio/wine-packaging.git wine-packaging && \
+    #git clone --depth 1 https://github.com/hinchliff/wine-packaging.git wine-packaging && \
     cd /wine-packaging && \
     ./generate.py --ver 2.3 --skip-name --out /wine-source debian-jessie-stable && \
-    sed -e '/wine-stable-arm.substvars/ s/"\-m32"//' -i /wine-source/debian/rules
+    sed -e '/wine-stable-arm.substvars/ s/"\-m32"/"-marm"/' -i /wine-source/debian/rules
 
+# from `dpkg-buildpackage`
+#   -us    Do not sign the source package.
+#   -uc    Do not sign the .changes file.
+#   -nc    Do  not  clean  the source tree.
+#   -F     Specifies a normal full build, binary and source  packages  will be  built
+#   -tc    Clean  the  source  tree after the package has been built. [keep the image smaller?]
+# The -F is necessary to get dpkg-buildpackage to generate the .dsc file
+# dpkg-genchanges: error: cannot read ../wine-stable_2.3.0~jessie.dsc: No such file or directory
 RUN cd /wine-source && \
-    debuild
-    #make clean
-
-    #./configure && \
-    #make
-
-## Packaging
-#RUN apt-get install devscripts
-
-# Download or clone the packaging git repo
-#RUN git clone --depth 1 https://github.com/wine-compholio/wine-packaging.git wine-packaging
-
-#RUN cd wine-packaging && \
-    #./generate.py --ver 2.3 --skip-name --out /wine-source debian-jessie-stable
-
-#RUN apt-get install fakeroot
-
-#RUN cd wine-source && \
-    #debuild
-
-#CMD [ "/usr/bin/qemu-arm-static", "/bin/sh.real" ]
+    debuild -us -uc -F -tc
 
 RUN [ "cross-build-end" ]
