@@ -80,11 +80,11 @@ RUN apt-get install \
 # Download latest release version of Wine
 # And prepare to package it
 RUN mkdir -p wine-source && \
-    git clone --depth 1 --branch wine-2.3 git://source.winehq.org/git/wine.git wine-source && \
+    git clone --depth 1 --branch wine-2.4 git://source.winehq.org/git/wine.git wine-source && \
     git clone --depth 1 https://github.com/wine-compholio/wine-packaging.git wine-packaging && \
     #git clone --depth 1 https://github.com/hinchliff/wine-packaging.git wine-packaging && \
     cd /wine-packaging && \
-    ./generate.py --ver 2.3 --skip-name --out /wine-source debian-jessie-stable && \
+    ./generate.py --ver 2.4 --skip-name --out /wine-source debian-jessie-stable && \
     sed -e '/wine-stable-arm.substvars/ s/"\-m32"/"-marm"/' -i /wine-source/debian/rules
 
 # from `dpkg-buildpackage`
